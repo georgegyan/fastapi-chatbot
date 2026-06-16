@@ -5,6 +5,7 @@ from app.db.dependencies import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserLogin, UserResponse
 from app.core.security import hash_password, verify_password
+from app.core.jwt import create_access_token
 
 router = APIRouter(
     prefix="/api/v1/auth",
@@ -62,6 +63,9 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
             detail="Invalid email or password"
         )
 
+    access_token = create_access_token(data={"sub": db_user.id})
+
     return {
-        "message": "Login successful"
+        "access_token": access_token,
+        "token_type": "bearer"
     }
