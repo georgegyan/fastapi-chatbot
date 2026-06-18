@@ -12,3 +12,7 @@ class MessageResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class AIResponse(BaseModel):
+    user_message: MessageResponse
+    assistant_message: MessageResponse
