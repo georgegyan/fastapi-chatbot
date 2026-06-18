@@ -1,28 +1,34 @@
-from datetime import datetime
-from sqlalchemy import DateTime, ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column
-from app.db.base import Base
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
-class Chat(Base):
-    __tablename__ = "chats"
+from app.db.dependencies import get_db
+from app.models.chat import Chat
+from app.models.user import User
+from app.schemas.chat import ChatCreate, ChatResponse
+from app.api.dependencies import get_current_user
 
-    id: Mapped[int] = mapped_column(
-        primary_key=True,
-        autoincrement=True
+router = APIRouter(
+    prefix="/api/v1/chats",
+    tags=["Chats"]
+)
+
+@router.post(
+    "",
+    response_model=ChatResponse
+)
+def create_chat(
+    chat: ChatCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    new_chat = Chat(
+        title=chat.title,
+        user_id=current_user.id
     )
 
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        nullable=False
-    )
+    db.add(new_chat)
+    db.commit()
+    db.refresh(new_chat)
 
-    title: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow,
-        nullable=False
-    )
+    return new_chat
