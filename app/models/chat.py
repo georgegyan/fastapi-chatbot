@@ -1,7 +1,10 @@
 from datetime import datetime
+
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.db.base import Base
+
 
 class Chat(Base):
     __tablename__ = "chats"
