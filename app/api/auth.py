@@ -6,6 +6,7 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserLogin, UserResponse
 from app.core.security import hash_password, verify_password
 from app.core.jwt import create_access_token
+from app.api.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/api/v1/auth",
@@ -69,3 +70,12 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         "access_token": access_token,
         "token_type": "bearer"
     }
+
+@router.get(
+    "/me",
+    response_model=UserResponse
+)
+def get_me(
+    current_user: User = Depends(get_current_user)
+):
+    return current_user
