@@ -1,209 +1,256 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 
 export default function Chat() {
-  const [user, setUser] = useState(null);
-  const [chats, setChats] = useState([]);
-  const [selectedChat, setSelectedChat] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [title, setTitle] = useState("");
-  const [message, setMessage] = useState("");
+const [user, setUser] = useState(null);
+const [chats, setChats] = useState([]);
+const [selectedChat, setSelectedChat] = useState(null);
+const [messages, setMessages] = useState([]);
+const [title, setTitle] = useState("");
+const [message, setMessage] = useState("");
+const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
+const messagesEndRef = useRef(null);
+const navigate = useNavigate();
 
-    async function loadData() {
-      try {
-        const userResponse = await api.get("/api/v1/auth/me");
-        if (!isMounted) return;
+function logout() {
+localStorage.removeItem("access_token");
+navigate("/login");
+}
 
-        setUser(userResponse.data);
+useEffect(() => {
+let isMounted = true;
 
-        const chatsResponse = await api.get("/api/v1/chats");
-        if (!isMounted) return;
+async function loadData() {
+  try {
+    const userResponse = await api.get(
+      "/api/v1/auth/me"
+    );
 
-        setChats(chatsResponse.data);
-      } catch (error) {
-        console.error(error);
-      }
-    }
+    if (!isMounted) return;
 
-    loadData();
+    setUser(userResponse.data);
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    const chatsResponse = await api.get(
+      "/api/v1/chats"
+    );
 
+    if (!isMounted) return;
 
-  async function createChat(e) {
-    e.preventDefault();
-
-    try {
-      const response = await api.post(
-        "/api/v1/chats",
-        {
-          title,
-        }
-      );
-
-      setChats([
-        response.data,
-        ...chats,
-      ]);
-
-      setTitle("");
-    } catch (error) {
-      console.error(error);
-    }
+    setChats(chatsResponse.data);
+  } catch (error) {
+    console.error(error);
   }
+}
 
-  async function openChat(chat) {
-    setSelectedChat(chat);
+loadData();
 
-    try {
-      const response = await api.get(
-        `/api/v1/chats/${chat.id}/messages`
-      );
+return () => {
+  isMounted = false;
+};
 
-      setMessages(response.data);
-    } catch (error) {
-      console.error(error);
+}, []);
+
+useEffect(() => {
+messagesEndRef.current?.scrollIntoView({
+behavior: "smooth",
+});
+}, [messages]);
+
+async function createChat(e) {
+e.preventDefault();
+
+try {
+  const response = await api.post(
+    "/api/v1/chats",
+    {
+      title,
     }
-  }
+  );
 
-  async function sendMessage(e) {
+  setChats([
+    response.data,
+    ...chats,
+  ]);
+
+  setTitle("");
+} catch (error) {
+  console.error(error);
+}
+
+}
+
+async function openChat(chat) {
+setSelectedChat(chat);
+
+try {
+  const response = await api.get(
+    `/api/v1/chats/${chat.id}/messages`
+  );
+
+  setMessages(response.data);
+    } catch (error) {
+  console.error(error);
+    }
+}
+
+async function sendMessage(e) {
     e.preventDefault();
 
     if (!selectedChat) return;
 
     try {
-      const response = await api.post(
-        `/api/v1/chats/${selectedChat.id}/messages`,
-        {
-          content: message,
-        }
-      );
+  setLoading(true);
 
-      setMessages((prev) => [
-        ...prev,
-        response.data.user_message,
-        response.data.assistant_message,
-      ]);
-
-      setMessage("");
-    } catch (error) {
-      console.error(error);
+  const response = await api.post(
+    `/api/v1/chats/${selectedChat.id}/messages`,
+    {
+      content: message,
     }
-  }
+  );
 
-  return (
+  setMessages((prev) => [
+    ...prev,
+    response.data.user_message,
+    response.data.assistant_message,
+  ]);
+
+  setMessage("");
+    } catch (error) {
+  console.error(error);
+    } finally {
+  setLoading(false);
+    }  
+} 
+
+return (
+<div
+style={{
+display: "flex",
+height: "100vh",
+}}
+>
+<div
+style={{
+width: "300px",
+borderRight: "1px solid #ccc",
+padding: "1rem",
+}}
+> <h2>Chats</h2>
+
+  <form onSubmit={createChat}>
+      <input
+        type="text"
+        placeholder="Chat title"
+        value={title}
+        onChange={(e) =>
+          setTitle(e.target.value)
+        }
+      />
+
+      <button type="submit">
+        Create
+      </button>
+    </form>
+
+    <hr />
+
+    {chats.map((chat) => (
+      <div
+        key={chat.id}
+        onClick={() => openChat(chat)}
+        style={{
+          cursor: "pointer",
+          marginBottom: "10px",
+        }}
+      >
+        {chat.title}
+      </div>
+    ))}
+    </div>
+
+  <div
+    style={{
+      flex: 1,
+      padding: "1rem",
+    }}
+  >
     <div
       style={{
         display: "flex",
-        height: "100vh",
+        justifyContent: "space-between",
+        marginBottom: "20px",
       }}
     >
-      <div
-        style={{
-          width: "300px",
-          borderRight: "1px solid #ccc",
-          padding: "1rem",
-        }}
-      >
-        <h2>Chats</h2>
-
-        <form onSubmit={createChat}>
-          <input
-            type="text"
-            placeholder="Chat title"
-            value={title}
-            onChange={(e) =>
-              setTitle(e.target.value)
-            }
-          />
-
-          <button type="submit">
-            Create
-          </button>
-        </form>
-
-        <hr />
-
-        {chats.map((chat) => (
-          <div
-            key={chat.id}
-            onClick={() => openChat(chat)}
-            style={{
-              cursor: "pointer",
-              marginBottom: "10px",
-            }}
-          >
-            {chat.title}
-          </div>
-        ))}
-      </div>
-
-      <div
-        style={{
-          flex: 1,
-          padding: "1rem",
-        }}
-      >
+      <div>
         {user && (
           <p>
             Logged in as {user.email}
           </p>
         )}
+      </div>
 
-        <h2>
-          {selectedChat
-            ? selectedChat.title
-            : "Select a Chat"}
-        </h2>
+      <button onClick={logout}>
+        Logout
+      </button>
+    </div>
 
+    <h2>
+      {selectedChat
+        ? selectedChat.title
+        : "Select a Chat"}
+    </h2>
+
+    <div
+      style={{
+        minHeight: "400px",
+        marginBottom: "20px",
+      }}
+    >
+      {messages.map((msg) => (
         <div
+          key={msg.id}
           style={{
-            minHeight: "400px",
-            marginBottom: "20px",
+            marginBottom: "15px",
           }}
         >
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              style={{
-                marginBottom: "15px",
-              }}
-            >
-              <strong>
-                {msg.role}
-              </strong>
+          <strong>
+            {msg.role}
+          </strong>
 
-              <p>{msg.content}</p>
-            </div>
-          ))}
+          <p>{msg.content}</p>
         </div>
+      ))}
 
-        {selectedChat && (
-          <form onSubmit={sendMessage}>
-            <input
-              type="text"
-              placeholder="Type a message..."
-              value={message}
-              onChange={(e) =>
-                setMessage(e.target.value)
-              }
-              style={{
-                width: "80%",
-              }}
-            />
-
-            <button type="submit">
-              Send
-            </button>
-          </form>
-        )}
-      </div>
+      <div ref={messagesEndRef}></div>
     </div>
+
+    {loading && (
+      <p>AI is thinking...</p>
+    )}
+
+    {selectedChat && (
+      <form onSubmit={sendMessage}>
+        <input
+          type="text"
+          placeholder="Type a message..."
+          value={message}
+          onChange={(e) =>
+            setMessage(e.target.value)
+          }
+          style={{
+            width: "80%",
+          }}
+        />
+
+        <button type="submit">
+          Send
+        </button>
+      </form>
+    )}
+  </div>
+</div>
   );
 }
+
