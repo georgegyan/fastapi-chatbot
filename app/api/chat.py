@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_db
@@ -32,3 +32,31 @@ def create_chat(
     db.refresh(new_chat)
 
     return new_chat
+
+@router.delete("/{chat_id}")
+def delete_chat(
+    chat_id: int,
+    db: Session =  Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    chat = (
+        db.query(Chat)
+        .filter(
+            Chat.id == chat_id,
+            Chat.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not chat:
+        raise HTTPException(
+            status_code=404,
+            detail="Chat not found"
+        )
+    
+    db.delete(chat)
+    db.commit()
+
+    return {
+        "message": "Chat deleted successfully"
+    }
