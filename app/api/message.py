@@ -52,8 +52,24 @@ def create_message(
     db.commit()
     db.refresh(user_message)
 
+    messages = (
+        db.query(Message)
+        .filter(Message.chat_id == chat_id)
+        .order_by(Message.id.asc())
+        .all()
+    )
+
+    conversation = []
+
+    for msg in messages:
+        conversation.append(
+            f"{msg.role}: {msg.content}"
+        )
+
+    prompt = "\n".join(conversation)
+
     ai_text = generate_response(
-        payload.content
+        prompt
     )
 
     assistant_message = Message(
