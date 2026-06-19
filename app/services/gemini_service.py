@@ -14,3 +14,21 @@ def generate_response(prompt: str) -> str:
 
     except Exception as e:
         return f"Gemini Error: {str(e)}"
+    
+def generate_chat_title(first_message: str) -> str:
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=f"""
+            Generate a short chat title for (3-6 words max)
+            for this message:
+            
+            {first_message}
+            Return only title.
+            """
+        )
+
+        return response.text.strip()
+    
+    except Exception:
+        return "New Chat"
