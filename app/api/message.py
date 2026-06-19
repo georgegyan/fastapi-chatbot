@@ -13,8 +13,11 @@ from app.schemas.message import (
     AIResponse
 )
 
-# router instance for this module
-router = APIRouter()
+router = APIRouter(
+    prefix="/api/v1/chats",
+    tags=["Messages"]
+)
+
 
 @router.post(
     "/{chat_id}/messages",
@@ -68,9 +71,7 @@ def create_message(
 
     prompt = "\n".join(conversation)
 
-    ai_text = generate_response(
-        prompt
-    )
+    ai_text = generate_response(prompt)
 
     assistant_message = Message(
         chat_id=chat.id,
@@ -86,6 +87,7 @@ def create_message(
         "user_message": user_message,
         "assistant_message": assistant_message
     }
+
 
 @router.get(
     "/{chat_id}/messages",
